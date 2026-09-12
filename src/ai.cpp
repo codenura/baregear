@@ -24,6 +24,7 @@
 #include <cstring>
 #include <cstdint>
 #include <map>
+#include <capstone/capstone.h>
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
@@ -33,10 +34,11 @@
 #include "ai.h"
 #include "dynvar.h"
 
-#define appendResult(result) do { \
+extern csh cpstHandle;
+/* #define appendResult(result) do { \
     src = result; \
     vectorAppend(possibilities, (void*)(long)src); \
-} while(0)
+} while(0) */
 
 class ParentMapBuilder : public clang::RecursiveASTVisitor<ParentMapBuilder> {
 public:
@@ -91,7 +93,7 @@ public:
 };
 
 extern "C" {
-    vector* guessTheBehavior(vector registers, int code, uint32_t arch) {
+    /* vector* guessTheBehavior(vector registers, int code, uint32_t arch) {
         const long rax = vectorGetValue(&registers, 0); // Syscall number (rax)
         const long rdi = vectorGetValue(&registers, 1); // First argument (rdi on x86_64)
         const long rsi = vectorGetValue(&registers, 2); // Second argument (rsi on x86_64)
@@ -191,7 +193,7 @@ extern "C" {
         else
             appendResult(UNKNOWN_ERROR);
         return possibilities;
-    }
+    } */
 }
 
 static bool isIsOpenCheck(clang::Stmt *S, const std::string &varName) {
@@ -224,7 +226,7 @@ std::string transpileASTToCode(clang::ASTContext &Context, clang::Stmt *astNode)
     return sourceCodeBuffer;
 }
 
-void fixBugByPossibility(clang::ASTContext* AST, clang::TranslationUnitDecl* tunit,
+/* void fixBugByPossibility(clang::ASTContext* AST, clang::TranslationUnitDecl* tunit,
                          int section[], bhResult possibility) {
     if (!section) return;
     
@@ -369,4 +371,4 @@ void fixBugByPossibility(clang::ASTContext* AST, clang::TranslationUnitDecl* tun
             }
         }
     }
-}
+} */

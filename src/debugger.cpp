@@ -54,7 +54,7 @@ extern "C" {
     // vector* VMaps;
     vector* VRecords;
 
-    void startDebugger(dynvar host, unsigned short port, const void* buffer, size_t bufrSize) {
+    void startDebugger(dynvar* host, unsigned short port, const void* buffer, size_t bufrSize) {
         if (g_debuggerInitialized)
             return;
 
@@ -66,8 +66,8 @@ extern "C" {
 
         g_debugger.SetAsync(false);
 
-        char connectionUrl[256];
-        snprintf(connectionUrl, sizeof(connectionUrl), "connect://%s:%u", (char*)getValue(host), port);
+        char connectionUrl[128];
+        snprintf(connectionUrl, sizeof(connectionUrl), "connect://%s:%u", (char*)getValue(*host), port);
 
         lldb::SBError error;
         lldb::SBTarget target = g_debugger.CreateTarget("", "", "", true, error);
@@ -173,7 +173,7 @@ extern "C" {
             return info;
         }
 
-        if (!(char*)getValue(variableName)) {
+        if (!(char*)getValue(*variableName)) {
             bugDetected("Invalid variable name provided.");
             return info;
         }
@@ -186,7 +186,7 @@ extern "C" {
             lldb::SBValue variable = variables.GetValueAtIndex(i);
             if (variable.IsValid()) {
                 const std::string name = variable.GetName();
-                if (!name.empty() && strcmp(name.c_str(), (char*)getValue(variableName)) == 0) {
+                if (!name.empty() && strcmp(name.c_str(), (char*)getValue(*variableName)) == 0) {
                     // Found the variable
                     const std::string valueStr = variable.GetValue();
                     
@@ -203,7 +203,7 @@ extern "C" {
                 }
             }
         }
-        bugDetected(((std::string)"Variable '" + std::string((char*)getValue(variableName)) + "' not found in current frame.").c_str());
+        bugDetected(((std::string)"Variable '" + std::string((char*)getValue(*variableName)) + "' not found in current frame.").c_str());
         return info;
     }
 
@@ -330,13 +330,13 @@ static bool bpCallback(void *baton, lldb::SBProcess &process, lldb::SBThread &th
 
 dynvar getNodeValue(AST* node, DATATYPE* dtype) {
     dynvar val;
-    val->address = 0;
-    val->length = 0;
+    val.address = 0;
+    val.length = 0;
 
-    if (auto node = dynamic_cast<ValueNode*>(node)) {
-        setValue(&val, (char*)node->value.c_str());
+    if (auto valNode = dynamic_cast<ValueNode*>(node)) {
+        setValue(&val, (char*)valNode->value.c_str());
         *dtype = STRING;
-    } else if (auto node = dynamic_cast<BooleanNode*>(node)) {
+    } else if (auto boolNode = dynamic_cast<BooleanNode*>(node)) {
         //
     }
 

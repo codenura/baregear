@@ -40,8 +40,8 @@ target_link_libraries(baregear PRIVATE
         ${PULSE_LIBRARIES}
         ZLIB::ZLIB
         optimizedRuntime
-        PkgConfig::LIBELF
         seccomp
+        ${CAPSTONE_LIBRARIES}
         /usr/lib/llvm-18/lib/liblldb.so
         /usr/lib/llvm-18/lib/libclang-cpp.so.18.1
 )

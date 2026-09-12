@@ -21,86 +21,16 @@
 #include <dynvar.h>
 #include <seccomp.h>
 
-typedef enum {
-    // Memory & Bounds Safety
-    BUFFER_OVERFLOW,
-    BUFFER_UNDERFLOW,
-    OUT_OF_BOUNDS_READ,
-    OUT_OF_BOUNDS_WRITE,
-    USE_AFTER_FREE,
-    DOUBLE_FREE,
-    INVALID_FREE,
-    NULL_POINTER_DEREFERENCE,
-    MEMORY_LEAK,
-    UNINITIALIZED_READ,
-    DANGLING_POINTER_ACCESS,
-    HEAP_CORRUPTION,
-
-    // Concurrency & Threading Faults
-    DATA_RACE,
-    DEADLOCK,
-    LIVELOCK,
-    MUTEX_UNLOCK_ERROR,
-    THREAD_CREATION_FAILED,
-    RESOURCE_STARVATION,
-
-    // Arithmetic & Type Safety
-    DIVISION_BY_ZERO,
-    MODULO_BY_ZERO,
-    INTEGER_OVERFLOW,
-    INTEGER_UNDERFLOW,
-    FLOAT_INVALID_OPERATION,
-    FLOAT_DIVISION_BY_ZERO,
-    FLOAT_OVERFLOW,
-    FLOAT_UNDERFLOW,
-    TYPE_MISMATCH,
-    INVALID_CAST,
-
-    // Execution & Hardware Faults
-    SEGMENTATION_FAULT,
-    ILLEGAL_INSTRUCTION,
-    STACK_OVERFLOW,
-    STACK_UNDERFLOW,
-    BUS_ERROR,
-    PRIVILEGED_INSTRUCTION_VIOLATION,
-    HARDWARE_TRAP,
-    ALIGNMENT_FAULT,
-
-    // Security & Sandbox Violations
-    PERMISSION_DENIED,
-    UNAUTHORIZED_SYSCALL,
-    UNAUTHORIZED_FILE_ACCESS,
-    UNAUTHORIZED_NETWORK_ACCESS,
-    RESOURCE_LIMIT_EXCEEDED,
-    SANDBOX_ESCAPE_ATTEMPT,
-    MALFORMED_SYSCALL_ARGUMENT,
-    POLICY_VIOLATION,
-    PRIVILEGE_ESCALATION_ATTEMPT,
-
-    // I/O & File System Faults
-    FILE_NOT_FOUND,
-    FILE_ACCESS_DENIED,
-    EOF_REACHED_UNEXPECTEDLY,
-    IO_OPERATION_FAILED,
-    DISK_QUOTA_EXCEEDED,
-
-    // General Status & Control Flow
-    OKAY,
-    TIMEOUT,
-    CANCELLED,
-    UNKNOWN_ERROR
-} bhResult;
-
 #ifdef __cplusplus
 #include <cparser.h>
 
-void fixBugByPossibility(clang::ASTContext *AST, clang::TranslationUnitDecl *tunit,
-                        CLanguageMode lang, int section[], bhResult possibility);
+/* void fixBugByPossibility(clang::ASTContext *AST, clang::TranslationUnitDecl *tunit,
+                        CLanguageMode lang, int section[], bhResult possibility); */
 
 extern "C" {
 #endif
 
-extern vector* guessTheBehavior(vector registers, int code, __u32 arch);
+// extern vector* guessTheBehavior(vector registers, int code, __u32 arch);
 
 #ifdef __cplusplus
 }

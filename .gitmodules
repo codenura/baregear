@@ -1,3 +1,6 @@
 [submodule "lib/seccomp"]
 	path = lib/seccomp
 	url = https://github.com/baregear-br/libseccomp.git
+[submodule "lib/insset"]
+	path = lib/insset
+	url = https://github.com/baregear-br/insset.git

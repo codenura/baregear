@@ -17,14 +17,16 @@ set(CMAKE_AUTOMOC ON)
 find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(include)
+include_directories("lib\\insset\\include")
 
 find_package(ZLIB REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core Network)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PULSE REQUIRED libpulse)
-pkg_check_modules(LIBELF REQUIRED IMPORTED_TARGET libelf)
 pkg_check_modules(SECCOMP REQUIRED libseccomp)
+pkg_check_modules(CAPSTONE REQUIRED capstone)
+include_directories(${CAPSTONE_INCLUDE_DIRS})
 
 # Documentation target
 find_program(SPHINX_EXECUTABLE sphinx-build)
@@ -38,5 +40,5 @@ else()
     message(WARNING "Sphinx not found. Documentation target will not be available.")
 endif()
 
-add_subdirectory(lib)
+# add_subdirectory(lib)
 add_subdirectory(src)
