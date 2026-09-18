@@ -8,7 +8,9 @@ Required Dependencies:
 - `cmake`: Version 3.28 or higher (for configuration)
 - `python3`: For higher-level build automation
 - `qt5`: Qt5::Core and Qt5::Network modules (for argument parsing and HTTP requests)
-- `llvm`: Version 18.1 or higher (for assembling/compiling and LLDB debugging) but lower then llvm 19
+- `llvm`: Version 18.1 or higher (for assembling/compiling), but lower than LLVM 19
+- `clang` development headers: `libclang-18-dev` (for C/C++ AST parsing)
+- `lldb` development headers: `liblldb-18-dev` (for debugger integration)
 - `nasm`: Netwide Assembler (for own runtime assembly)
 - `pulseaudio`: For playing successul/failure sounds
 - `zlib`: Compression library
