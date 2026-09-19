@@ -63,7 +63,7 @@ root
 
 Building The Compiler:
 ```bash
-git submodule update --init --recursive
+git submodule update --init --recursive --remote
 cmake -B build
 cd build
 make -j $(nproc)
