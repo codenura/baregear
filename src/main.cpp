@@ -1,6 +1,6 @@
 /*
  * baregear - A programming language compiler
- * Copyright (C) 2026 First Person
+ * Copyright (C) 2026 Abdullah Al Nahian Raiyan <abdullahal3829@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ void failure() {
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName(QString("Baregear Compiler v%1\nCopyright (c) 2026 First Person All Rights Reversed").arg(APP_VERSION));
+    QCoreApplication::setApplicationName(QString("Baregear Compiler v%1\nCopyright (c) 2026 Abdullah Al Nahian Raiyan <abdullahal3829@gmail.com>").arg(APP_VERSION));
 
     QCommandLineOption helpOption(QStringList{"h", "help"}, "Displays help on commandline options.");
     qparser.addOption(helpOption);

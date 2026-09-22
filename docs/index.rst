@@ -8,6 +8,8 @@ baregear - A Programming Language Compiler
 
 .. toctree::
 
+   Contributing Guidelines
+   API
    Quick Start
    Commenting
    If Else Operation

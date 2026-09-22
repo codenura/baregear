@@ -1,6 +1,6 @@
 /*
  * baregear - A programming language compiler
- * Copyright (C) 2026 First Person
+ * Copyright (C) 2026 Abdullah Al Nahian Raiyan <abdullahal3829@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -193,9 +193,10 @@ uintptr_t recordVar() {
                 lldb::SBType return_type = func_type.GetFunctionReturnType();
                 if (return_type.IsValid() && strcmp(return_type.GetName(), "void") != 0) {
                     VariableInfo retValue = getReturnValue();
-                    long* valuePtr = getValue(retValue.value);
-                    if (valuePtr != nullptr)
-                        setValue(&record.value, (char*)valuePtr);
+                    lgr valueBuffer;
+                    getValue(retValue.value, &valueBuffer);
+                    if (valueBuffer[0])
+                        setValue(&record.value, valueBuffer);
                 }
 
                 lldb::SBTypeList arg_types = func_type.GetFunctionArgumentTypes();
@@ -218,6 +219,8 @@ uintptr_t recordVar() {
         bugDetected(buf);
     }
     
-    vectorAppend(VRecords, &record);
+    lgr recordBuffer;
+    memcpy(recordBuffer, &record, sizeof(record));
+    vectorAppend(VRecords, recordBuffer);
     return function;
 }
