@@ -8,7 +8,33 @@ endif()
 
 project(Baregear)
 include(CTest)
+include(ExternalProject)
 set(APP_VERSION 1.0)
+
+set(INSSET_BUILD_DIR "${CMAKE_BINARY_DIR}/_deps/libinsset-build")
+set(INSSET_LIBRARY "${INSSET_BUILD_DIR}/src/libinsset.so")
+
+# Parent project owns workspace orchestration; child project remains independent.
+# When a parent build should drive a child project, use ExternalProject_Add() and
+# build the child target directly instead of requiring an install step.
+ExternalProject_Add(baregear_insset
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/lib/insset
+    BINARY_DIR ${INSSET_BUILD_DIR}
+    CMAKE_GENERATOR "${CMAKE_GENERATOR}"
+    CMAKE_ARGS
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_CXX_STANDARD=23
+        -DCMAKE_CXX_STANDARD_REQUIRED=ON
+        -DCMAKE_PREFIX_PATH=/usr/lib/llvm-18
+        -DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target insset
+    BUILD_BYPRODUCTS ${INSSET_LIBRARY}
+    INSTALL_COMMAND ""
+    BUILD_ALWAYS OFF
+)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
