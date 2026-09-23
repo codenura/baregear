@@ -66,8 +66,10 @@ extern "C" {
 
         g_debugger.SetAsync(false);
 
+        lgr hostValue;
+        getValue(*host, &hostValue);
         char connectionUrl[128];
-        snprintf(connectionUrl, sizeof(connectionUrl), "connect://%s:%u", (char*)getValue(*host), port);
+        snprintf(connectionUrl, sizeof(connectionUrl), "connect://%s:%u", hostValue, port);
 
         lldb::SBError error;
         lldb::SBTarget target = g_debugger.CreateTarget("", "", "", true, error);
@@ -115,7 +117,10 @@ extern "C" {
     }
 
     void checkCond() {
-        CondFlag cflag = (CondFlag)vectorGetValue(condFlags, cfidx);
+        lgr cflagBuffer;
+        vectorGetValue(condFlags, cfidx, &cflagBuffer);
+        CondFlag cflag;
+        memcpy(&cflag, cflagBuffer, sizeof(cflag));
         if (auto BinOp = dynamic_cast<BinOpNode*>(cflag.condition)) {
             dynvar valL, valR;
         }
@@ -173,7 +178,9 @@ extern "C" {
             return info;
         }
 
-        if (!(char*)getValue(*variableName)) {
+        lgr variableNameValue;
+        getValue(*variableName, &variableNameValue);
+        if (!variableNameValue[0]) {
             bugDetected("Invalid variable name provided.");
             return info;
         }
@@ -186,7 +193,7 @@ extern "C" {
             lldb::SBValue variable = variables.GetValueAtIndex(i);
             if (variable.IsValid()) {
                 const std::string name = variable.GetName();
-                if (!name.empty() && strcmp(name.c_str(), (char*)getValue(*variableName)) == 0) {
+                if (!name.empty() && strcmp(name.c_str(), variableNameValue) == 0) {
                     // Found the variable
                     const std::string valueStr = variable.GetValue();
                     
@@ -203,7 +210,7 @@ extern "C" {
                 }
             }
         }
-        bugDetected(((std::string)"Variable '" + std::string((char*)getValue(*variableName)) + "' not found in current frame.").c_str());
+        bugDetected(((std::string)"Variable '" + std::string(variableNameValue) + "' not found in current frame.").c_str());
         return info;
     }
 
@@ -361,13 +368,14 @@ lldb::SBBreakpoint addBreakpoint(int line, dynvar* source, void* callback) {
         return invalid_bp;
     }
 
-    long* sourcePathPtr = getValue(*source);
-    if (!sourcePathPtr || source->length == 0) {
+    lgr sourcePathValue;
+    getValue(*source, &sourcePathValue);
+    if (!sourcePathValue[0] || source->length == 0) {
         bugDetected("Source file path is empty or invalid.");
         return invalid_bp;
     }
 
-    const std::string sourcePath = (const char*)sourcePathPtr;
+    const std::string sourcePath = sourcePathValue;
     lldb::SBBreakpoint bp = g_target.BreakpointCreateByLocation(sourcePath.c_str(), line);
     if (!bp.IsValid()) {
         bugDetected("Failed to create breakpoint.");
