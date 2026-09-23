@@ -24,15 +24,18 @@
 #include <cstring>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <capstone/capstone.h>
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
-#include "cparser.h"
-#include "ai.h"
-#include "dynvar.h"
+#include <cparser.h>
+#include <ai.h>
+#include <dynvar.h>
+#include <analyzer.h>
+#include <definations.h>
 
 extern csh cpstHandle;
 /* #define appendResult(result) do { \
@@ -224,6 +227,182 @@ std::string transpileASTToCode(clang::ASTContext &Context, clang::Stmt *astNode)
     outputStream.flush();
 
     return sourceCodeBuffer;
+}
+
+/*
+ * Agent: Codex
+ * LLM: GPT-5.6 Luna
+ */
+class FunctionNodeFinder : public clang::RecursiveASTVisitor<FunctionNodeFinder> {
+public:
+    explicit FunctionNodeFinder(const std::string &name) : functionName(name) {}
+
+    bool VisitFunctionDecl(clang::FunctionDecl *functionDecl) {
+        if (!functionDecl || !functionDecl->isThisDeclarationADefinition())
+            return true;
+
+        if (functionDecl->getNameAsString() == functionName) {
+            functionNode = functionDecl;
+            return false;
+        }
+
+        return true;
+    }
+
+    clang::FunctionDecl *getFunctionNode() const { return functionNode; }
+
+private:
+    const std::string &functionName;
+    clang::FunctionDecl *functionNode = nullptr;
+};
+
+// Lowers calls in a Clang function body to the assembly representation used by
+// CParser. The generated nodes own their operands through AsmInstruction.
+// Universal AST converter for lowering Clang call nodes and inline assembly statements
+// to the assembly AST representation used by CParser.
+class AssemblyASTConverter
+    : public clang::RecursiveASTVisitor<AssemblyASTConverter> {
+public:
+    explicit AssemblyASTConverter(clang::SourceManager &sourceManager)
+        : sourceManager(sourceManager) {}
+
+    // 1. Visit Call Expressions (clang::CallExpr)
+    bool VisitCallExpr(clang::CallExpr *callNode) {
+        if (!callNode)
+            return true;
+
+        const clang::FunctionDecl *callee = callNode->getDirectCallee();
+        if (!callee) {
+            bugDetected("Cannot convert an indirect function call to an assembly AST.");
+            conversionFailed = true;
+            return false;
+        }
+
+        const clang::PresumedLoc location =
+            sourceManager.getPresumedLoc(callNode->getExprLoc());
+        const int row = location.isValid() ? static_cast<int>(location.getLine()) : 0;
+        const int column = location.isValid() ? static_cast<int>(location.getColumn()) : 0;
+
+        std::vector<AsmOperand *> operands;
+        operands.push_back(new AsmOperand(
+            ASM_OP_LABEL, callee->getNameAsString(), row, column));
+        assemblyAST.push_back(std::make_unique<AsmInstruction>(
+            ASM_CALL, std::move(operands), row, column));
+        return true;
+    }
+
+    // 2. Visit GCC Inline Assembly Statements (clang::GCCAsmStmt)
+    bool VisitGCCAsmStmt(clang::GCCAsmStmt *asmNode) {
+        if (!asmNode)
+            return true;
+
+        const clang::PresumedLoc location =
+            sourceManager.getPresumedLoc(asmNode->getAsmLoc());
+        const int row = location.isValid() ? static_cast<int>(location.getLine()) : 0;
+        const int column = location.isValid() ? static_cast<int>(location.getColumn()) : 0;
+
+        std::string asmString = asmNode->getAsmString()->getString().str();
+
+        std::vector<AsmOperand *> operands;
+        operands.push_back(new AsmOperand(ASM_OP_LABEL, asmString, row, column));
+        
+        assemblyAST.push_back(std::make_unique<AsmInstruction>(
+            ASM_INLINE_ASM, std::move(operands), row, column));
+        return true;
+    }
+
+    // 3. Visit MS Inline Assembly Statements (clang::MSAsmStmt)
+    bool VisitMSAsmStmt(clang::MSAsmStmt *asmNode) {
+        if (!asmNode)
+            return true;
+
+        const clang::PresumedLoc location =
+            sourceManager.getPresumedLoc(asmNode->getAsmLoc());
+        const int row = location.isValid() ? static_cast<int>(location.getLine()) : 0;
+        const int column = location.isValid() ? static_cast<int>(location.getColumn()) : 0;
+
+        std::string asmString = asmNode->getAsmString().str();
+
+        std::vector<AsmOperand *> operands;
+        operands.push_back(new AsmOperand(ASM_OP_LABEL, asmString, row, column));
+
+        assemblyAST.push_back(std::make_unique<AsmInstruction>(
+            ASM_INLINE_ASM, std::move(operands), row, column));
+        return true;
+    }
+
+    const std::vector<std::unique_ptr<AsmASTNode>> &getAssemblyAST() const {
+        return assemblyAST;
+    }
+
+    bool hasConversionFailed() const { return conversionFailed; }
+
+private:
+    clang::SourceManager &sourceManager;
+    std::vector<std::unique_ptr<AsmASTNode>> assemblyAST;
+    bool conversionFailed = false;
+};
+
+void fixVuln(clang::ASTContext &Context, clang::Stmt *astNode, dynvar functionName) {
+    /*
+     * Agent: Codex
+     * LLM: GPT-5.6 Luna
+     */
+    
+    if (!astNode) {
+        bugDetected("Source AST node is empty.");
+        return;
+    }
+
+    if (functionName.address == (uintptr_t)0 || functionName.length == 0) {
+        bugDetected("Function name is empty.");
+        return;
+    }
+
+    const std::string requestedFunctionName(
+        static_cast<const char *>(reinterpret_cast<const void *>(functionName.address)),
+        functionName.length);
+    FunctionNodeFinder finder(requestedFunctionName);
+    finder.TraverseDecl(Context.getTranslationUnitDecl());
+
+    clang::FunctionDecl *functionNode = finder.getFunctionNode();
+    if (!functionNode) {
+        bugDetected("Requested function was not found in the source AST.");
+        return;
+    }
+
+    if (!functionNode->getBody()) {
+        bugDetected("Requested function has no body to convert.");
+        return;
+    }
+
+    vector results;
+
+    for (clang::Stmt *child : functionNode->getBody()->children()) {
+        if (!child)
+            continue;
+
+        if (clang::isa<clang::CallExpr>(child) || clang::isa<clang::GCCAsmStmt>(child)
+            || clang::isa<clang::MSAsmStmt>(child)) {
+            AssemblyASTConverter converter(Context.getSourceManager());
+            converter.TraverseStmt(functionNode->getBody());
+            if (converter.hasConversionFailed())
+                return;
+
+            AssemblyASTConverter converter(Context.getSourceManager());
+            converter.TraverseStmt(functionNode->getBody());
+
+            if (converter.hasConversionFailed()) {
+                bugDetected("Assembly AST conversion failed.");
+                return;
+            }
+
+            // Execute Assembly-level analysis
+            vector results = analyzeCode(converter.getAssemblyAST());
+        }
+    }
+
+    // Will Be Implemented
 }
 
 /* void fixBugByPossibility(clang::ASTContext* AST, clang::TranslationUnitDecl* tunit,

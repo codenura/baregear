@@ -25,6 +25,7 @@ build/
 *.msix
 *.msi
 *.AppImage
+core
 
 # Code Editor Files
 .vs/
