@@ -87,13 +87,20 @@ std::string Transpiler::transpile() {
     int hcol = std::count(hstr.str().begin(), hstr.str().end(), '\n');
     std::vector<int> remainingFlags;
     for (int i = 0; condFlags->count - 1 > i; i++) {
-        CondFlag* cflag = (CondFlag*)vectorGetValue(condFlags, i);
-        if ((bool)vectorGetValue(condFlagsMap, i) == true) {
+        lgr cflagBuffer;
+        lgr inMainBuffer;
+        vectorGetValue(condFlags, i, &cflagBuffer);
+        vectorGetValue(condFlagsMap, i, &inMainBuffer);
+        CondFlag cflag;
+        bool flagInMain;
+        memcpy(&cflag, cflagBuffer, sizeof(cflag));
+        memcpy(&flagInMain, inMainBuffer, sizeof(flagInMain));
+        if (flagInMain == true) {
             remainingFlags.push_back(i);
             continue;
         }
-        cflag->col += hcol;
-        memcpy(VECTOR_FORMULA(condFlags, i), (void*)cflag, sizeof(CondFlag));
+        cflag.col += hcol;
+        memcpy(VECTOR_FORMULA(condFlags, i), &cflag, sizeof(cflag));
     }
 
     hstr << sstr.str();
@@ -103,9 +110,12 @@ std::string Transpiler::transpile() {
     if (remainingFlags.size() > 0) {
         hcol = std::count(hstr.str().begin(), hstr.str().end(), '\n');
         for (int i : remainingFlags) {
-            CondFlag* cflag = (CondFlag*)vectorGetValue(condFlags, i);
-            cflag->col += hcol;
-            memcpy(VECTOR_FORMULA(condFlags, i), (void*)cflag, sizeof(CondFlag));
+            lgr cflagBuffer;
+            vectorGetValue(condFlags, i, &cflagBuffer);
+            CondFlag cflag;
+            memcpy(&cflag, cflagBuffer, sizeof(cflag));
+            cflag.col += hcol;
+            memcpy(VECTOR_FORMULA(condFlags, i), &cflag, sizeof(cflag));
         }
 
         remainingFlags.clear();
@@ -454,8 +464,12 @@ std::string Transpiler::factor(AST* body) {
         CondFlag cflag;
         cflag.col = col;
         cflag.condition = cflagNode->condition;
-        vectorAppend(condFlags, &cflag);
-        vectorAppend(condFlagsMap, &inMain);
+        lgr cflagBuffer;
+        lgr inMainBuffer;
+        memcpy(cflagBuffer, &cflag, sizeof(cflag));
+        memcpy(inMainBuffer, &inMain, sizeof(inMain));
+        vectorAppend(condFlags, cflagBuffer);
+        vectorAppend(condFlagsMap, inMainBuffer);
         return stream.str();
     }
     return "";

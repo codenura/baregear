@@ -33,16 +33,23 @@ target_compile_options(baregear PRIVATE
 )
 
 llvm_map_components_to_libnames(llvm_libs core native support option)
+find_library(LLDB_LIBRARY
+                NAMES lldb-18 lldb
+                HINTS /usr/lib/llvm-18/lib /usr/lib/x86_64-linux-gnu)
+if(NOT LLDB_LIBRARY)
+        message(FATAL_ERROR "Could not find the LLDB library. Install liblldb-18-dev.")
+endif()
+
+add_dependencies(baregear baregear_insset)
 target_link_libraries(baregear PRIVATE
         ${llvm_libs}
         Qt5::Core
         Qt5::Network
         ${PULSE_LIBRARIES}
         ZLIB::ZLIB
-        optimizedRuntime
+        "${INSSET_LIBRARY}"
         seccomp
-        ${CAPSTONE_LIBRARIES}
-        /usr/lib/llvm-18/lib/liblldb.so
+        ${LLDB_LIBRARY}
         /usr/lib/llvm-18/lib/libclang-cpp.so.18.1
 )
 
@@ -50,7 +57,9 @@ target_include_directories(baregear PRIVATE
         ${SECCOMP_INCLUDE_DIRS}
         ${PULSE_INCLUDE_DIRS}
         ${CMAKE_SOURCE_DIR}/include
-        /usr/lib/llvm-18/include
+        ${LLVM_INCLUDE_DIRS}
+        ${LLDB_INCLUDE_DIR}
+        ${CLANG_INCLUDE_DIR}
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
