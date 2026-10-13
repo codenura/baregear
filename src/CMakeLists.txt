@@ -46,15 +46,14 @@ target_link_libraries(baregear PRIVATE
         Qt5::Core
         Qt5::Network
         ${PULSE_LIBRARIES}
+        PkgConfig::UNICORN
         ZLIB::ZLIB
         "${INSSET_LIBRARY}"
-        seccomp
         ${LLDB_LIBRARY}
         /usr/lib/llvm-18/lib/libclang-cpp.so.18.1
 )
 
 target_include_directories(baregear PRIVATE
-        ${SECCOMP_INCLUDE_DIRS}
         ${PULSE_INCLUDE_DIRS}
         ${CMAKE_SOURCE_DIR}/include
         ${LLVM_INCLUDE_DIRS}

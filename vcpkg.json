@@ -3,14 +3,16 @@
   "version": "1.0",
   "builtin-baseline": "3af1d1e60af2b2abf55760538cd607829029b07a",
   "dependencies": [
+    "libtorch",
+    "llama-cpp",
     "llvm",
-    "qt5-base",
-    "zlib",
-    "cvector",
-    "lief",
+    "unicorn",
     {
       "name": "pulseaudio",
       "platform": "linux"
-    }
+    },
+    "qt5-base",
+    "zlib",
+    "tensorflow-cc"
   ]
 }

@@ -26,6 +26,8 @@ build/
 *.msi
 *.AppImage
 core
+*.zip
+out/
 
 # Code Editor Files
 .vs/

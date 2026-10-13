@@ -376,8 +376,6 @@ void fixVuln(clang::ASTContext &Context, clang::Stmt *astNode, dynvar functionNa
         return;
     }
 
-    vector results;
-
     for (clang::Stmt *child : functionNode->getBody()->children()) {
         if (!child)
             continue;
@@ -389,16 +387,12 @@ void fixVuln(clang::ASTContext &Context, clang::Stmt *astNode, dynvar functionNa
             if (converter.hasConversionFailed())
                 return;
 
-            AssemblyASTConverter converter(Context.getSourceManager());
-            converter.TraverseStmt(functionNode->getBody());
-
             if (converter.hasConversionFailed()) {
                 bugDetected("Assembly AST conversion failed.");
                 return;
             }
 
-            // Execute Assembly-level analysis
-            vector results = analyzeCode(converter.getAssemblyAST());
+            analyzeCode(converter.getAssemblyAST());
         }
     }
 

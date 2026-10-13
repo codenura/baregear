@@ -19,4 +19,16 @@
 #ifndef EMULATOR_UTIL_H
 #define EMULATOR_UTIL_H
 
+#include <unicorn/unicorn.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+uc_err startEmulation(uc_engine **engine);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // EMULATOR_UTIL_H

@@ -6,6 +6,39 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg.json" AND NOT CMAKE_TOOLCHAIN_FILE)
     endif()
 endif()
 
+#[[
+  Agent: Github Copilot
+  LLM: GPT 5.6 Luna
+]]
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "${CMAKE_SOURCE_DIR}/vcpkg.json" AND DEFINED ENV{VCPKG_ROOT})
+    set(_libuuid_archive "$ENV{VCPKG_ROOT}/downloads/libuuid-1.0.3.tar.gz")
+    if(NOT EXISTS "${_libuuid_archive}")
+        file(MAKE_DIRECTORY "$ENV{VCPKG_ROOT}/downloads")
+        find_program(CURL_EXECUTABLE curl REQUIRED)
+        execute_process(
+            COMMAND "${CURL_EXECUTABLE}" -fL --retry 3 --retry-all-errors --max-time 120
+                "https://downloads.sourceforge.net/project/libuuid/libuuid-1.0.3.tar.gz"
+                -o "${_libuuid_archive}"
+            RESULT_VARIABLE _libuuid_download_result
+        )
+        if(NOT "${_libuuid_download_result}" STREQUAL "0")
+            file(REMOVE "${_libuuid_archive}")
+            message(FATAL_ERROR "Failed to download the libuuid source archive.")
+        endif()
+
+        execute_process(
+            COMMAND sha512sum "${_libuuid_archive}"
+            OUTPUT_VARIABLE _libuuid_sha512_output
+            RESULT_VARIABLE _libuuid_sha512_result
+        )
+        string(REGEX MATCH "^[0-9a-fA-F]+" _libuuid_sha512 "${_libuuid_sha512_output}")
+        if(NOT "${_libuuid_sha512_result}" STREQUAL "0" OR NOT _libuuid_sha512 STREQUAL "77488caccc66503f6f2ded7bdfc4d3bc2c20b24a8dc95b2051633c695e99ec27876ffbafe38269b939826e1fdb06eea328f07b796c9e0aaca12331a787175507")
+            file(REMOVE "${_libuuid_archive}")
+            message(FATAL_ERROR "The downloaded libuuid archive failed its SHA-512 check.")
+        endif()
+    endif()
+endif()
+
 project(Baregear)
 include(CTest)
 include(ExternalProject)
@@ -50,7 +83,7 @@ find_package(Qt5 REQUIRED COMPONENTS Core Network)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PULSE REQUIRED libpulse)
-pkg_check_modules(SECCOMP REQUIRED libseccomp)
+pkg_check_modules(UNICORN REQUIRED IMPORTED_TARGET unicorn)
 pkg_check_modules(CAPSTONE REQUIRED capstone)
 include_directories(${CAPSTONE_INCLUDE_DIRS})
 

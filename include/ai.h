@@ -19,7 +19,6 @@
 #ifndef BAREGEAR_AI_H
 #define BAREGEAR_AI_H
 #include <dynvar.h>
-#include <seccomp.h>
 
 #ifdef __cplusplus
 #include <cparser.h>

@@ -16,119 +16,76 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
- #include <iostream>
+#include <iostream>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <cstring>
 
 #include <debugger.h>
 #include <runtime.h>
 #include <definations.h>
 #include <ai.h>
 #include <dynvar.h>
+#include <emulatorUtil.h>
+#include <unicorn/x86.h>
 #include <lldb/API/SBTarget.h>
 #include <lldb/API/SBAddress.h>
 #include <lldb/API/SBFunction.h>
 #include <lldb/API/SBType.h>
 
 extern "C" {
-    #include <seccomp.h>
-    #include <seccomp-syscalls.h>
-    
-    void handleSYSCALL(int notify_fd) {
-        struct seccomp_notif *req = NULL;
-        struct seccomp_notif_resp *resp = NULL;
+    static void handleSYSCALL(uc_engine *engine, void *) {
+        uint64_t instruction_pointer = 0;
+        uint64_t flags = 0;
+        const uint64_t syscall_result = 0;
+        const uint64_t syscall_instruction_size = 2;
 
-        if (seccomp_notify_alloc(&req, &resp) < 0) {
-            bugDetected("seccomp_notify_alloc failed");
+        if (uc_reg_read(engine, UC_X86_REG_RIP, &instruction_pointer) != UC_ERR_OK ||
+            uc_reg_read(engine, UC_X86_REG_RFLAGS, &flags) != UC_ERR_OK) {
+            uc_emu_stop(engine);
             return;
         }
 
-        while (seccomp_notify_receive(notify_fd, req) == 0) {
-            if (seccomp_notify_id_valid(notify_fd, req->id) < 0)
-                continue;
-
-            int syscall_num = req->data.nr;
-            __u32 arch = req->data.arch;
-            __u64 instruction_pointer = req->data.instruction_pointer;
-            __u64 *register_args = req->data.args;
-
-            // Send payload to your compiler AI
-            // Create vector from register arguments including rax (syscall number)
-            __u64 all_regs[7]; // rax + 6 args
-            all_regs[0] = syscall_num; // rax contains syscall number
-            for (int i = 0; i < 6; i++)
-                all_regs[i + 1] = register_args[i];
-
-            vector registers;
-            registers.address = (uintptr_t)all_regs;
-            registers.sizePerBlks = sizeof(__u64);
-            registers.count = 7; // rax + 6 arguments
-
-            // vector result = guessTheBehavior(registers, syscall_num, arch);
-
-            // Prepare response to resume or block the sandboxed process
-            resp->id = req->id;
-            resp->flags = 0;
-            resp->error = 0; // Allow the syscall
-            resp->val = 0;
-
-            // Send the decision back to the kernel to unpause the tracee
-            seccomp_notify_respond(notify_fd, resp);
-        }
-
-        seccomp_notify_free(req, resp);
+        instruction_pointer += syscall_instruction_size;
+        if (uc_reg_write(engine, UC_X86_REG_RCX, &instruction_pointer) != UC_ERR_OK ||
+            uc_reg_write(engine, UC_X86_REG_R11, &flags) != UC_ERR_OK ||
+            uc_reg_write(engine, UC_X86_REG_RAX, &syscall_result) != UC_ERR_OK ||
+            uc_reg_write(engine, UC_X86_REG_RIP, &instruction_pointer) != UC_ERR_OK)
+            uc_emu_stop(engine);
     }
 
-    
+    uc_err startEmulation(uc_engine **engine) {
+        if (engine == nullptr)
+            return UC_ERR_ARG;
 
-    void simLoop(int notify_fd) {
-        struct seccomp_notif req;
-        struct seccomp_notif_resp resp;
+        uc_err error = uc_open(UC_ARCH_X86, UC_MODE_64, engine);
+        if (error != UC_ERR_OK)
+            return error;
 
-        while (1) {
-            memset(&req, 0, sizeof(req));
-            memset(&resp, 0, sizeof(resp));
-
-            if (seccomp_notify_receive(notify_fd, &req) < 0) {
-                perror("seccomp_notify_receive");
-                break;
-            }
-
-            // Validate if the notification is still alive/valid (prevents race conditions)
-            if (seccomp_notify_id_valid(notify_fd, req.id) < 0)
-                continue;
-
-            SymInfo symbolInfo = getLineNumber((uint64_t)req.data.instruction_pointer);
-            addBreakpoint(symbolInfo.lineNumber + 1, &symbolInfo.sourcePath, (void*)recordVar);
-
-            // Prepare the response packet
-            resp.id = req.id;
-            resp.flags = 0;
-            resp.error = 0; // Allow the syscall
-            resp.val = 0;
-
-            // Send response back to unblock the guest
-            if (seccomp_notify_respond(notify_fd, &resp) < 0) {
-                // If the target process died or was interrupted, handle gracefully
-                if (errno == ENOENT) continue;
-                perror("seccomp_notify_respond");
-                break;
-            }
+        uc_hook syscall_hook;
+        error = uc_hook_add(*engine, &syscall_hook, UC_HOOK_INSN,
+                            reinterpret_cast<void *>(handleUnicornSyscall), nullptr,
+                            1, 0, UC_X86_INS_SYSCALL);
+        if (error != UC_ERR_OK) {
+            uc_close(*engine);
+            *engine = nullptr;
         }
+
+        return error;
     }
 }
 
 uintptr_t recordVar() {
-    // Get function address and parameters from LLDB
     uintptr_t function = 0;
     vector* params = nullptr;
-    
+
     if (!g_process.IsValid()) {
         bugDetected("No active debugging process.");
         return 0;
     }
-    
+
     lldb::SBThread thread = g_process.GetSelectedThread();
     if (!thread.IsValid()) {
         bugDetected("No valid thread found.");

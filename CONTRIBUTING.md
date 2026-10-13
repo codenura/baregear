@@ -14,7 +14,7 @@ Required Dependencies:
 - `nasm`: Netwide Assembler (for own runtime assembly)
 - `pulseaudio`: For playing successul/failure sounds
 - `zlib`: Compression library
-- `seccomp`: Linux secure computing mode library
+- `unicorn`: Software Emulation Library
 - `lldb`: LLDB API for debugging integration
 - `sphinx`: For Documentation Generation
 - `insset`: For Instruction Set Simulation (git Submodule)
@@ -69,4 +69,13 @@ cd build
 make -j $(nproc)
 make docs
 ```
+Setting Target Platform:
+```bash
+cmake -B build -DTARGET_PLATFORM=[TARGET_PLATFORM]
+```
+Replace `[TARGET_PLATFORM]` With Targeted Platform From:
+- `Win`: For Windows
+- `Mac`: For MacOS
+- `Unix`: For Linux
+
 Note: You need to have `sphinx` installed to build the documentation. and builded documentation is generated in `build/docs` directory after building. otherwise documentation source code is located on `docs` directory.
