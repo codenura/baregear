@@ -47,6 +47,7 @@ jobs:
 
       - name: Configure vcpkg binary cache environment
         run: |
+          mkdir -p ~/.cache/vcpkg/archives
           echo "VCPKG_DEFAULT_BINARY_CACHE=${HOME}/.cache/vcpkg/archives" >> $GITHUB_ENV
 
       - name: Install Required Dependencies
