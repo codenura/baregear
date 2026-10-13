@@ -1,11 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg.json" AND NOT CMAKE_TOOLCHAIN_FILE)
-    if(DEFINED ENV{VCPKG_ROOT})
-        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-    endif()
-endif()
-
 #[[
   Agent: Github Copilot
   LLM: GPT 5.6 Luna
@@ -35,6 +29,29 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "${CMAKE_SOURCE_DIR}/vcpkg
         if(NOT "${_libuuid_sha512_result}" STREQUAL "0" OR NOT _libuuid_sha512 STREQUAL "77488caccc66503f6f2ded7bdfc4d3bc2c20b24a8dc95b2051633c695e99ec27876ffbafe38269b939826e1fdb06eea328f07b796c9e0aaca12331a787175507")
             file(REMOVE "${_libuuid_archive}")
             message(FATAL_ERROR "The downloaded libuuid archive failed its SHA-512 check.")
+        endif()
+    endif()
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg.json" AND NOT CMAKE_TOOLCHAIN_FILE)
+    if(DEFINED ENV{VCPKG_ROOT})
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+        if (WIN32 || WIN64)
+            execute_process(
+                COMMAND "${VCPKG_ROOT}/vcpkg.exe" contact
+                RESULT_VARIABLE vcpkg_result
+                OUTPUT_VARIABLE vcpkg_output
+                ERROR_VARIABLE vcpkg_error
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+        else()
+            execute_process(
+                COMMAND "${VCPKG_ROOT}/vcpkg" contact
+                RESULT_VARIABLE vcpkg_result
+                OUTPUT_VARIABLE vcpkg_output
+                ERROR_VARIABLE vcpkg_error
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
         endif()
     endif()
 endif()

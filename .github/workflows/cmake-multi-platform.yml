@@ -57,7 +57,7 @@ jobs:
           sudo apt-get install -y bison libxrender-dev libxft-dev python3-jinja2 libxi-dev libxtst-dev \
                                   autoconf autoconf-archive automake libtool zip unzip libxrandr-dev nasm gfortran \
                                   python3-full python3-venv
-          vcpkg install
+          # vcpkg install
 
       - name: Initialize The All Submodules Of This Repo
         run: |
@@ -66,6 +66,7 @@ jobs:
       - name: Configure CMake
         run: >
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          --preset=default
           -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
           -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
