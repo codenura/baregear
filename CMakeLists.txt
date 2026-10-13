@@ -57,6 +57,39 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg.json" AND NOT CMAKE_TOOLCHAIN_FILE)
 endif()
 
 project(Baregear)
+
+# Keep manifest installation explicit so `cmake -B build` also installs the
+# dependencies declared by vcpkg.json before package discovery below.
+if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg.json")
+    set(_vcpkg_root "$ENV{VCPKG_ROOT}")
+    if(NOT _vcpkg_root AND CMAKE_TOOLCHAIN_FILE MATCHES "/scripts/buildsystems/vcpkg\\.cmake$")
+        get_filename_component(_vcpkg_root "${CMAKE_TOOLCHAIN_FILE}" DIRECTORY)
+        get_filename_component(_vcpkg_root "${_vcpkg_root}" DIRECTORY)
+        get_filename_component(_vcpkg_root "${_vcpkg_root}" DIRECTORY)
+    endif()
+
+    if(WIN32)
+        set(_vcpkg_executable "${_vcpkg_root}/vcpkg.exe")
+    else()
+        set(_vcpkg_executable "${_vcpkg_root}/vcpkg")
+    endif()
+
+    if(NOT EXISTS "${_vcpkg_executable}")
+        message(FATAL_ERROR
+            "vcpkg.json exists, but vcpkg was not found. Set VCPKG_ROOT or "
+            "configure with -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root>/scripts/buildsystems/vcpkg.cmake.")
+    endif()
+
+    message(STATUS "Installing vcpkg manifest dependencies")
+    execute_process(
+        COMMAND "${_vcpkg_executable}" install
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        RESULT_VARIABLE _vcpkg_install_result
+    )
+    if(NOT "${_vcpkg_install_result}" STREQUAL "0")
+        message(FATAL_ERROR "vcpkg install failed (${_vcpkg_install_result}).")
+    endif()
+endif()
 include(CTest)
 include(ExternalProject)
 set(APP_VERSION 1.0)

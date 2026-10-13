@@ -49,15 +49,35 @@ jobs:
         run: |
           mkdir -p ~/.cache/vcpkg/archives
           echo "VCPKG_DEFAULT_BINARY_CACHE=${HOME}/.cache/vcpkg/archives" >> $GITHUB_ENV
+          echo "VCPKG_ROOT=$VCPKG_ROOT" >> $GITHUB_ENV
+
+      - name: Preload and Verify libuuid Archive
+        shell: bash
+        run: |
+          LIBUUID_ARCHIVE="$VCPKG_ROOT/downloads/libuuid-1.0.3.tar.gz"
+          EXPECTED_SHA512="77488caccc66503f6f2ded7bdfc4d3bc2c20b24a8dc95b2051633c695e99ec27876ffbafe38269b939826e1fdb06eea328f07b796c9e0aaca12331a787175507"
+
+          if [ ! -f "$LIBUUID_ARCHIVE" ]; then
+              mkdir -p "$VCPKG_ROOT/downloads"
+              curl -fL --retry 3 --retry-all-errors --max-time 120 \
+                  "https://downloads.sourceforge.net/project/libuuid/libuuid-1.0.3.tar.gz" \
+                  -o "$LIBUUID_ARCHIVE" || { echo "Failed to download the libuuid source archive."; rm -f "$LIBUUID_ARCHIVE"; exit 1; }
+
+              ACTUAL_SHA512=$(sha512sum "$LIBUUID_ARCHIVE" | awk '{print $1}')
+              if [ "$ACTUAL_SHA512" != "$EXPECTED_SHA512" ]; then
+                  echo "The downloaded libuuid archive failed its SHA-512 check."
+                  rm -f "$LIBUUID_ARCHIVE"
+                  exit 1
+              fi
+          fi
 
       - name: Install Required Dependencies
         run: |
           sudo apt update
-          # Fixed python package names for Ubuntu 24.04 / standard runner environments
-          sudo apt-get install -y bison libxrender-dev libxft-dev python3-jinja2 libxi-dev libxtst-dev \
+          sudo apt-get install -y build-essential bison libxrender-dev libxft-dev python3-jinja2 libxi-dev libxtst-dev \
                                   autoconf autoconf-archive automake libtool zip unzip libxrandr-dev nasm gfortran \
                                   python3-full python3-venv
-          # vcpkg install
+          vcpkg install
 
       - name: Initialize The All Submodules Of This Repo
         run: |
