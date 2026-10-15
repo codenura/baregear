@@ -11,6 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       VCPKG_ROOT: /usr/local/share/vcpkg
+
     strategy:
       fail-fast: false
       matrix:
@@ -37,8 +38,8 @@ jobs:
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-      - name: Set up vcpkg binary caching
-        uses: actions/cache@v4
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/vcpkg/archives
           key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.c_compiler }}
@@ -55,11 +56,16 @@ jobs:
       - name: Preload and Verify libuuid Archive
         shell: bash
         run: |
+          if [ -z "$VCPKG_ROOT" ]; then
+              echo "Error: VCPKG_ROOT is not set."
+              exit 1
+          fi
+
           LIBUUID_ARCHIVE="$VCPKG_ROOT/downloads/libuuid-1.0.3.tar.gz"
+          mkdir -p "$(dirname "$LIBUUID_ARCHIVE")"
           EXPECTED_SHA512="77488caccc66503f6f2ded7bdfc4d3bc2c20b24a8dc95b2051633c695e99ec27876ffbafe38269b939826e1fdb06eea328f07b796c9e0aaca12331a787175507"
 
           if [ ! -f "$LIBUUID_ARCHIVE" ]; then
-              mkdir -p "$VCPKG_ROOT/downloads"
               curl -fL --retry 3 --retry-all-errors --max-time 120 \
                   "https://downloads.sourceforge.net/project/libuuid/libuuid-1.0.3.tar.gz" \
                   -o "$LIBUUID_ARCHIVE" || { echo "Failed to download the libuuid source archive."; rm -f "$LIBUUID_ARCHIVE"; exit 1; }
@@ -77,7 +83,7 @@ jobs:
           sudo apt update
           sudo apt-get install -y build-essential bison libxrender-dev libxft-dev python3-jinja2 libxi-dev libxtst-dev \
                                   autoconf autoconf-archive automake libtool zip unzip libxrandr-dev nasm gfortran \
-                                  python3-full python3-venv libltdl-dev
+                                  python3-full python3-venv
           vcpkg install
 
       - name: Initialize The All Submodules Of This Repo
@@ -99,3 +105,10 @@ jobs:
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: ctest --verbose --build-config ${{ matrix.build_type }}
+
+      - name: Save vcpkg binary cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.c_compiler }}-${{ github.run_id }}
